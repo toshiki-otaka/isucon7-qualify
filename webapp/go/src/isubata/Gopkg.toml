@@ -24,3 +24,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/jmoiron/sqlx"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/toshiki-otaka/isucon7-qualify"
