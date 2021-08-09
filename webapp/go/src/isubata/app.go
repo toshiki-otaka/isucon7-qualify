@@ -443,39 +443,31 @@ func fetchUnread(c echo.Context) error {
 		return c.NoContent(http.StatusForbidden)
 	}
 
-	time.Sleep(time.Second)
-
-	channels, err := queryChannels()
+	channelIDs, err := queryChannels()
 	if err != nil {
 		return err
 	}
-
-	resp := []map[string]interface{}{}
 
 	haveReads := model.HaveReads{}
 	if err = db.Get(&haveReads, "SELECT * FROM haveread WHERE user_id = ?", userID); err != sql.ErrNoRows && err != nil {
 		return err
 	}
 
-	for _, chID := range channels {
+	messages := model.Messages{}
+	if err := db.Get(&messages, "SELECT * FROM message WHERE channel_id in ?", channelIDs); err != sql.ErrNoRows && err != nil {
+		return err
+	}
+
+	resp := make([]map[string]int64, len(channelIDs))
+	for i, chID := range channelIDs {
 		lastID := haveReads.LastMessageID(userID, chID)
 		var cnt int64
 		if lastID > 0 {
-			err = db.Get(&cnt,
-				"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ? AND ? < id",
-				chID, lastID)
+			cnt = messages.CountByIDAndChannelID(lastID, chID)
 		} else {
-			err = db.Get(&cnt,
-				"SELECT COUNT(*) as cnt FROM message WHERE channel_id = ?",
-				chID)
+			cnt = messages.CountByChannelID(chID)
 		}
-		if err != nil {
-			return err
-		}
-		r := map[string]interface{}{
-			"channel_id": chID,
-			"unread":     cnt}
-		resp = append(resp, r)
+		resp[i] = map[string]int64{"channel_id": chID, "unread": cnt}
 	}
 
 	return c.JSON(http.StatusOK, resp)
