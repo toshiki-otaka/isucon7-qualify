@@ -23,6 +23,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/middleware"
+	"github.com/toshiki-otaka/isucon7-qualify/webapp/go/src/isubata/model"
 )
 
 const (
@@ -451,12 +452,13 @@ func fetchUnread(c echo.Context) error {
 
 	resp := []map[string]interface{}{}
 
-	for _, chID := range channels {
-		lastID, err := queryHaveRead(userID, chID)
-		if err != nil {
-			return err
-		}
+	haveReads := model.HaveReads{}
+	if err = db.Get(&haveReads, "SELECT * FROM haveread WHERE user_id = ?", userID); err != sql.ErrNoRows && err != nil {
+		return err
+	}
 
+	for _, chID := range channels {
+		lastID := haveReads.LastMessageID(userID, chID)
 		var cnt int64
 		if lastID > 0 {
 			err = db.Get(&cnt,
