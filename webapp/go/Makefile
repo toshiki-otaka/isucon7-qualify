@@ -1,9 +1,6 @@
 GOPATH := ${PWD}
 export GOPATH
 
-install:
-	dep ensure
-
 build:
 	go build -v isubata
 
