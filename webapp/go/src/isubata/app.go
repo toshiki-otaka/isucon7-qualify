@@ -23,7 +23,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo-contrib/session"
 	"github.com/labstack/echo/middleware"
-	"github.com/toshiki-otaka/isucon7-qualify/webapp/go/src/isubata/model"
 )
 
 const (
@@ -121,6 +120,28 @@ type Message struct {
 	UserID    int64     `db:"user_id"`
 	Content   string    `db:"content"`
 	CreatedAt time.Time `db:"created_at"`
+}
+
+type Messages []*Message
+
+func (ms Messages) CountByIDAndChannelID(id, channelID int64) int64 {
+	var count int64
+	for _, m := range ms {
+		if m.ChannelID == channelID && id < m.ID {
+			count++
+		}
+	}
+	return count
+}
+
+func (ms Messages) CountByChannelID(channelID int64) int64 {
+	var count int64
+	for _, m := range ms {
+		if m.ChannelID == channelID {
+			count++
+		}
+	}
+	return count
 }
 
 func queryMessages(chanID, lastID int64) ([]Message, error) {
@@ -416,14 +437,28 @@ func queryChannels() ([]int64, error) {
 	return res, err
 }
 
-func queryHaveRead(userID, chID int64) (int64, error) {
-	type HaveRead struct {
-		UserID    int64     `db:"user_id"`
-		ChannelID int64     `db:"channel_id"`
-		MessageID int64     `db:"message_id"`
-		UpdatedAt time.Time `db:"updated_at"`
-		CreatedAt time.Time `db:"created_at"`
+type HaveRead struct {
+	UserID    int64     `db:"user_id"`
+	ChannelID int64     `db:"channel_id"`
+	MessageID int64     `db:"message_id"`
+	UpdatedAt time.Time `db:"updated_at"`
+	CreatedAt time.Time `db:"created_at"`
+}
+
+type HaveReads []*HaveRead
+
+func (ms HaveReads) LastMessageID(userID, channelID int64) int64 {
+	var lastMessageID int64
+	for _, m := range ms {
+		if m.UserID == userID && m.ChannelID == channelID {
+			lastMessageID = m.MessageID
+			break
+		}
 	}
+	return lastMessageID
+}
+
+func queryHaveRead(userID, chID int64) (int64, error) {
 	h := HaveRead{}
 
 	err := db.Get(&h, "SELECT * FROM haveread WHERE user_id = ? AND channel_id = ?",
@@ -448,12 +483,12 @@ func fetchUnread(c echo.Context) error {
 		return err
 	}
 
-	haveReads := model.HaveReads{}
+	haveReads := HaveReads{}
 	if err = db.Get(&haveReads, "SELECT * FROM haveread WHERE user_id = ?", userID); err != sql.ErrNoRows && err != nil {
 		return err
 	}
 
-	messages := model.Messages{}
+	messages := Messages{}
 	if err := db.Get(&messages, "SELECT * FROM message WHERE channel_id in ?", channelIDs); err != sql.ErrNoRows && err != nil {
 		return err
 	}
