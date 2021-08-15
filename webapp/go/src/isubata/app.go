@@ -484,12 +484,12 @@ func fetchUnread(c echo.Context) error {
 	}
 
 	haveReads := HaveReads{}
-	if err = db.Get(&haveReads, "SELECT * FROM haveread WHERE user_id = ?", userID); err != sql.ErrNoRows && err != nil {
+	if err = db.Select(&haveReads, "SELECT * FROM haveread WHERE user_id = ?", userID); err != sql.ErrNoRows && err != nil {
 		return err
 	}
 
 	messages := Messages{}
-	if err := db.Get(&messages, "SELECT * FROM message WHERE channel_id in ?", channelIDs); err != sql.ErrNoRows && err != nil {
+	if err := db.Select(&messages, "SELECT * FROM message WHERE channel_id in ?", channelIDs); err != sql.ErrNoRows && err != nil {
 		return err
 	}
 
