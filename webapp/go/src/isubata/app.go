@@ -488,7 +488,7 @@ func fetchUnread(c echo.Context) error {
 		return err
 	}
 
-	sqlQuery, params, err := sqlx.In("SELECT * FROM message WHERE channel_id in ?", channelIDs)
+	sqlQuery, params, err := sqlx.In("SELECT * FROM message WHERE channel_id in (?)", channelIDs)
 	if err != nil {
 		return err
 	}
