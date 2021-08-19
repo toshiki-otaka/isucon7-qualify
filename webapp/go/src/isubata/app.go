@@ -408,7 +408,6 @@ func getMessage(c echo.Context) error {
 	}
 
 	response := make([]map[string]interface{}, 0, len(messages))
-	start := time.Now()
 	for i := len(messages) - 1; i >= 0; i-- {
 		m := messages[i]
 		r, err := jsonifyMessage(m)
@@ -417,9 +416,7 @@ func getMessage(c echo.Context) error {
 		}
 		response = append(response, r)
 	}
-	fmt.Fprintf(os.Stdout, "loop processing time:%v", time.Since(start))
 
-	start2 := time.Now()
 	if len(messages) > 0 {
 		_, err := db.Exec("INSERT INTO haveread (user_id, channel_id, message_id, updated_at, created_at)"+
 			" VALUES (?, ?, ?, NOW(), NOW())"+
@@ -429,7 +426,6 @@ func getMessage(c echo.Context) error {
 			return err
 		}
 	}
-	fmt.Fprintf(os.Stdout, "insert processing time:%v", time.Since(start2))
 
 	return c.JSON(http.StatusOK, response)
 }
